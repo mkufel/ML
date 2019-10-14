@@ -2,20 +2,6 @@
 # coding: utf-8
 
 # # Lab 3: Bayes Classifier and Boosting
-
-# ## Jupyter notebooks
-# 
-# In this lab, you can use Jupyter <https://jupyter.org/> to get a nice layout of your code and plots in one document. However, you may also use Python as usual, without Jupyter.
-# 
-# If you have Python and pip, you can install Jupyter with `sudo pip install jupyter`. Otherwise you can follow the instruction on <http://jupyter.readthedocs.org/en/latest/install.html>.
-# 
-# And that is everything you need! Now use a terminal to go into the folder with the provided lab files. Then run `jupyter notebook` to start a session in that folder. Click `lab3.ipynb` in the browser window that appeared to start this very notebook. You should click on the cells in order and either press `ctrl+enter` or `run cell` in the toolbar above to evaluate all the expressions.
-
-# ## Import the libraries
-# 
-# In Jupyter, select the cell below and press `ctrl + enter` to import the needed libraries.
-# Check out `labfuns.py` if you are interested in the details.
-
 import numpy as np
 from scipy import misc
 from imp import reload
@@ -25,10 +11,11 @@ import sys
 sys.path.append('/res')
 
 
-
 # ## Bayes classifier functions to implement
 # 
 # The lab descriptions state what each function should do.
+
+
 
 
 # NOTE: you do not need to handle the W argument for this part!
@@ -71,7 +58,17 @@ def mlParams(X, labels, W=None):
 
     # TODO: fill in the code to compute mu and sigma!
     # ==========================
-    
+
+    for idx, c in enumerate(classes):
+        idy = np.where(labels == c)[0]   # Get all vectors corresponding to the class
+        mu[idx] = X[idy].sum(axis=0) / idy.shape[0]   # Sum up and divide by the number of vectors
+
+    for idx, c in enumerate(classes):
+        idy = np.where(labels == c)[0]   # Get all vectors for the class
+        variances = (X[idy] - mu[idx]) ** 2   # Calculate the variances for each vector
+        mean = np.sum(variances, axis=0) / len(variances)   # Sum and divide by the number of variances
+        sigma[idx] = np.diag(mean)   # Get the diagonal matrix for Naive Bayes
+
     # ==========================
 
     return mu, sigma
@@ -122,7 +119,7 @@ class BayesClassifier(object):
 # Call `genBlobs` and `plotGaussian` to verify your estimates.
 
 
-X, labels = genBlobs(centers=5)
+X, labels = genBlobs(centers=8)
 mu, sigma = mlParams(X,labels)
 plotGaussian(X,labels,mu,sigma)
 
@@ -202,7 +199,9 @@ def classifyBoost(X, classifiers, alphas, Nclasses):
         return np.argmax(votes,axis=1)
 
 
-# The implemented functions can now be summarized another classifer, the `BoostClassifier` class. This class enables boosting different types of classifiers by initializing it with the `base_classifier` argument. No need to add anything here.
+# The implemented functions can now be summarized another classifer, the `BoostClassifier` class.
+# This class enables boosting different types of classifiers by initializing it with the `base_classifier` argument.
+# No need to add anything here.
 
 
 # NOTE: no need to touch this
@@ -277,7 +276,9 @@ class BoostClassifier(object):
 #testClassifier(BoostClassifier(DecisionTreeClassifier(), T=10), dataset='olivetti',split=0.7, dim=20)
 
 
-# You should get an accuracy around 70%. If you wish, you can compare this with using pure decision trees or a boosted bayes classifier. Not too bad, now let's try and classify a face as belonging to one of 40 persons!
+# You should get an accuracy around 70%. If you wish, you can compare this with using pure decision
+# trees or a boosted bayes classifier. Not too bad, now let's try and classify a face as belonging
+# to one of 40 persons!
 
 
 #X,y,pcadim = fetchDataset('olivetti') # fetch the olivetti data
