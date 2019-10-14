@@ -7,8 +7,6 @@ from scipy import misc
 from imp import reload
 from labfuns import *
 import random
-import sys
-sys.path.append('/res')
 
 
 # ## Bayes classifier functions to implement
@@ -34,7 +32,9 @@ def computePrior(labels, W=None):
 
     # TODO: compute the values of prior for each class!
     # ==========================
-    
+    for idx, c in enumerate(classes):
+        idy = np.where(labels == c)[0]
+        prior[idx] = len(idy) / Npts
     # ==========================
 
     return prior
@@ -86,7 +86,13 @@ def classifyBayes(X, prior, mu, sigma):
 
     # TODO: fill in the code to compute the log posterior logProb!
     # ==========================
-    
+    for idc in range(Nclasses):
+        ln_sigma = - np.log(np.linalg.det(sigma[idc])) / 2
+        diff = X - mu[idc]
+        ln_prior = np.log(prior[idc])
+        for point in range(Npts):
+            logProb[idc][point] = ln_sigma - np.inner(diff[point] / np.diag(sigma[idc]), diff[point]) / 2 + ln_prior
+
     # ==========================
     
     # one possible way of finding max a-posteriori once
@@ -121,21 +127,16 @@ class BayesClassifier(object):
 
 X, labels = genBlobs(centers=8)
 mu, sigma = mlParams(X,labels)
-plotGaussian(X,labels,mu,sigma)
+classifyBayes(X, computePrior(labels), mu, sigma)
+# plotGaussian(X,labels,mu,sigma)
 
 
 # Call the `testClassifier` and `plotBoundary` functions for this part.
 
 
-#testClassifier(BayesClassifier(), dataset='iris', split=0.7)
-
-
-
+testClassifier(BayesClassifier(), dataset='iris', split=0.7)
 #testClassifier(BayesClassifier(), dataset='vowel', split=0.7)
-
-
-
-#plotBoundary(BayesClassifier(), dataset='iris',split=0.7)
+plotBoundary(BayesClassifier(), dataset='iris',split=0.7)
 
 
 # ## Boosting functions to implement
