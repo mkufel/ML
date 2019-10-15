@@ -16,7 +16,6 @@ import random
 
 
 
-# NOTE: you do not need to handle the W argument for this part!
 # in: labels - N vector of class labels
 # out: prior - C x 1 vector of class priors
 def computePrior(labels, W=None):
@@ -32,9 +31,9 @@ def computePrior(labels, W=None):
 
     # TODO: compute the values of prior for each class!
     # ==========================
-    for idx, c in enumerate(classes):
-        idy = np.where(labels == c)[0]
-        prior[idx] = len(idy) / Npts
+    for idc, c in enumerate(classes):
+        idp = np.where(labels == c)[0]   # Ids of points in the given class
+        prior[idc] = np.sum(W[idp]) / np.sum(W)
     # ==========================
 
     return prior
@@ -61,13 +60,15 @@ def mlParams(X, labels, W=None):
 
     for idx, c in enumerate(classes):
         idy = np.where(labels == c)[0]   # Get all vectors corresponding to the class
-        mu[idx] = X[idy].sum(axis=0) / idy.shape[0]   # Sum up and divide by the number of vectors
+        w_matrix  = X[idy] * W[idy]   # Multiply all vectors by their weights
+        mu[idx] = w_matrix.sum(axis=0) / np.sum(W[idy])   # Sum up and divide by the sum of vector weights
 
     for idx, c in enumerate(classes):
         idy = np.where(labels == c)[0]   # Get all vectors for the class
         variances = (X[idy] - mu[idx]) ** 2   # Calculate the variances for each vector
-        mean = np.sum(variances, axis=0) / len(variances)   # Sum and divide by the number of variances
-        sigma[idx] = np.diag(mean)   # Get the diagonal matrix for Naive Bayes
+        w_variances = W[idy] * variances   # Multiply variances by the weights
+        mean = np.sum(w_variances, axis=0) / np.sum(W[idy])   # Sum and divide by the sum of weights
+        sigma[idx] = np.diag(mean)  # Get the diagonal matrix for Naive Bayes
 
     # ==========================
 
@@ -127,16 +128,18 @@ class BayesClassifier(object):
 
 X, labels = genBlobs(centers=8)
 mu, sigma = mlParams(X,labels)
-classifyBayes(X, computePrior(labels), mu, sigma)
+# classifyBayes(X, computePrior(labels), mu, sigma)
 # plotGaussian(X,labels,mu,sigma)
 
 
 # Call the `testClassifier` and `plotBoundary` functions for this part.
 
 
-testClassifier(BayesClassifier(), dataset='iris', split=0.7)
-#testClassifier(BayesClassifier(), dataset='vowel', split=0.7)
-plotBoundary(BayesClassifier(), dataset='iris',split=0.7)
+# testClassifier(BayesClassifier(), dataset='iris', split=0.7)
+# plotBoundary(BayesClassifier(), dataset='iris',split=0.7)
+
+# testClassifier(BayesClassifier(), dataset='vowel', split=0.7)
+# plotBoundary(BayesClassifier(), dataset='vowel',split=0.7)
 
 
 # ## Boosting functions to implement
@@ -167,10 +170,28 @@ def trainBoost(base_classifier, X, labels, T=10):
         # do classification for each point
         vote = classifiers[-1].classify(X)
 
-        # TODO: Fill in the rest, construct the alphas etc.
         # ==========================
-        
-        # alphas.append(alpha) # you will need to append the new alpha
+        # Error = sum of weights - weights of correctly classified instances
+        error = np.sum(wCur)
+        c_votes = np.where(vote == labels)[0]   # correct votes
+        for vote in c_votes:
+            error -= wCur[vote]
+
+        alpha = (np.log(1 - error) - np.log(error)) / 2
+        alphas.append(alpha)   # append the new alpha
+
+        f_votes = np.where(vote != labels)[0]   # incorrect votes
+        wOld = wCur
+
+        # Weights for correctly classified * e^{-alpha} to decrease the weight
+        for vote in c_votes:
+            wCur[vote] = wOld[vote] * np.exp(-alpha)
+
+        # Weights for misclassified * e^{alpha} to increase the weight
+        for vote in f_votes:
+            wCur[vote] = wOld[vote] * np.exp(alpha)
+
+        wCur /= np.sum(wCur)
         # ==========================
         
     return classifiers, alphas
@@ -193,11 +214,14 @@ def classifyBoost(X, classifiers, alphas, Nclasses):
         # TODO: implement classificiation when we have trained several classifiers!
         # here we can do it by filling in the votes vector with weighted votes
         # ==========================
-        
+        for idx, classifier in enumerate(classifiers):
+            step = classifier.classify(X)
+            for point in range(Npts):
+                votes[point][step[point]] += alphas[idx]
         # ==========================
 
         # one way to compute yPred after accumulating the votes
-        return np.argmax(votes,axis=1)
+        return np.argmax(votes, axis=1)
 
 
 # The implemented functions can now be summarized another classifer, the `BoostClassifier` class.
@@ -228,41 +252,30 @@ class BoostClassifier(object):
 # Call the `testClassifier` and `plotBoundary` functions for this part.
 
 
-#testClassifier(BoostClassifier(BayesClassifier(), T=10), dataset='iris',split=0.7)
+# testClassifier(BoostClassifier(BayesClassifier(), T=10), dataset='iris',split=0.7)
+
+# plotBoundary(BoostClassifier(BayesClassifier()), dataset='iris',split=0.7)
 
 
+# testClassifier(BoostClassifier(BayesClassifier(), T=10), dataset='vowel',split=0.7)
+#
+# plotBoundary(BoostClassifier(BayesClassifier()), dataset='vowel',split=0.7)
 
-#testClassifier(BoostClassifier(BayesClassifier(), T=10), dataset='vowel',split=0.7)
 
-
-
-#plotBoundary(BoostClassifier(BayesClassifier()), dataset='iris',split=0.7)
 
 
 # Now repeat the steps with a decision tree classifier.
 
 
-#testClassifier(DecisionTreeClassifier(), dataset='iris', split=0.7)
+# testClassifier(DecisionTreeClassifier(), dataset='iris', split=0.7)
+# plotBoundary(DecisionTreeClassifier(), dataset='iris', split=0.7)
 
+# testClassifier(BoostClassifier(DecisionTreeClassifier(), T=10), dataset='iris',split=0.7)
+# plotBoundary(BoostClassifier(DecisionTreeClassifier(), T=10), dataset='iris',split=0.7)
 
+testClassifier(BoostClassifier(DecisionTreeClassifier(), T=10), dataset='vowel',split=0.7)
+plotBoundary(BoostClassifier(DecisionTreeClassifier(), T=10), dataset='vowel',split=0.7)
 
-#testClassifier(BoostClassifier(DecisionTreeClassifier(), T=10), dataset='iris',split=0.7)
-
-
-
-#testClassifier(DecisionTreeClassifier(), dataset='vowel',split=0.7)
-
-
-
-#testClassifier(BoostClassifier(DecisionTreeClassifier(), T=10), dataset='vowel',split=0.7)
-
-
-
-#plotBoundary(DecisionTreeClassifier(), dataset='iris',split=0.7)
-
-
-
-#plotBoundary(BoostClassifier(DecisionTreeClassifier(), T=10), dataset='iris',split=0.7)
 
 
 # ## Bonus: Visualize faces classified using boosted decision trees
