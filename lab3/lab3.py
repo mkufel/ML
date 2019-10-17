@@ -8,13 +8,7 @@ from imp import reload
 from labfuns import *
 import random
 
-
-# ## Bayes classifier functions to implement
-# 
-# The lab descriptions state what each function should do.
-
-
-
+# ## Bayes classifier
 
 # in: labels - N vector of class labels
 # out: prior - C x 1 vector of class priors
@@ -29,16 +23,12 @@ def computePrior(labels, W=None):
 
     prior = np.zeros((Nclasses,1))
 
-    # TODO: compute the values of prior for each class!
-    # ==========================
     for idc, c in enumerate(classes):
         idp = np.where(labels == c)[0]   # Ids of points in the given class
         prior[idc] = np.sum(W[idp]) / np.sum(W)
-    # ==========================
 
     return prior
 
-# NOTE: you do not need to handle the W argument for this part!
 # in:      X - N x d matrix of N data points
 #     labels - N vector of class labels
 # out:    mu - C x d matrix of class means (mu[i] - class i mean)
@@ -55,9 +45,6 @@ def mlParams(X, labels, W=None):
     mu = np.zeros((Nclasses,Ndims))
     sigma = np.zeros((Nclasses,Ndims,Ndims))
 
-    # TODO: fill in the code to compute mu and sigma!
-    # ==========================
-
     for idx, c in enumerate(classes):
         idy = np.where(labels == c)[0]   # Get all vectors corresponding to the class
         w_matrix  = X[idy] * W[idy]   # Multiply all vectors by their weights
@@ -69,8 +56,6 @@ def mlParams(X, labels, W=None):
         w_variances = W[idy] * variances   # Multiply variances by the weights
         mean = np.sum(w_variances, axis=0) / np.sum(W[idy])   # Sum and divide by the sum of weights
         sigma[idx] = np.diag(mean)  # Get the diagonal matrix for Naive Bayes
-
-    # ==========================
 
     return mu, sigma
 
@@ -85,8 +70,6 @@ def classifyBayes(X, prior, mu, sigma):
     Nclasses,Ndims = np.shape(mu)
     logProb = np.zeros((Nclasses, Npts))
 
-    # TODO: fill in the code to compute the log posterior logProb!
-    # ==========================
     for idc in range(Nclasses):
         ln_sigma = - np.log(np.linalg.det(sigma[idc])) / 2
         diff = X - mu[idc]
@@ -94,8 +77,6 @@ def classifyBayes(X, prior, mu, sigma):
         for point in range(Npts):
             logProb[idc][point] = ln_sigma - np.inner(diff[point] / np.diag(sigma[idc]), diff[point]) / 2 + ln_prior
 
-    # ==========================
-    
     # one possible way of finding max a-posteriori once
     # you have computed the log posterior
     h = np.argmax(logProb,axis=0)
@@ -104,8 +85,6 @@ def classifyBayes(X, prior, mu, sigma):
 
 # The implemented functions can now be summarized into the `BayesClassifier` class, which we will use later to test the classifier, no need to add anything else here:
 
-
-# NOTE: no need to touch this
 class BayesClassifier(object):
     def __init__(self):
         self.trained = False
@@ -170,7 +149,6 @@ def trainBoost(base_classifier, X, labels, T=10):
         # do classification for each point
         vote = classifiers[-1].classify(X)
 
-        # ==========================
         # Error = sum of weights - weights of correctly classified instances
         error = np.sum(wCur)
         c_votes = np.where(vote == labels)[0]   # correct votes
@@ -192,8 +170,7 @@ def trainBoost(base_classifier, X, labels, T=10):
             wCur[vote] = wOld[vote] * np.exp(alpha)
 
         wCur /= np.sum(wCur)
-        # ==========================
-        
+
     return classifiers, alphas
 
 # in:       X - N x d matrix of N data points
@@ -211,14 +188,11 @@ def classifyBoost(X, classifiers, alphas, Nclasses):
     else:
         votes = np.zeros((Npts,Nclasses))
 
-        # TODO: implement classificiation when we have trained several classifiers!
         # here we can do it by filling in the votes vector with weighted votes
-        # ==========================
         for idx, classifier in enumerate(classifiers):
             step = classifier.classify(X)
             for point in range(Npts):
                 votes[point][step[point]] += alphas[idx]
-        # ==========================
 
         # one way to compute yPred after accumulating the votes
         return np.argmax(votes, axis=1)
@@ -229,7 +203,6 @@ def classifyBoost(X, classifiers, alphas, Nclasses):
 # No need to add anything here.
 
 
-# NOTE: no need to touch this
 class BoostClassifier(object):
     def __init__(self, base_classifier, T=10):
         self.base_classifier = base_classifier
@@ -258,7 +231,6 @@ class BoostClassifier(object):
 
 
 # testClassifier(BoostClassifier(BayesClassifier(), T=10), dataset='vowel',split=0.7)
-#
 # plotBoundary(BoostClassifier(BayesClassifier()), dataset='vowel',split=0.7)
 
 
@@ -269,6 +241,9 @@ class BoostClassifier(object):
 
 # testClassifier(DecisionTreeClassifier(), dataset='iris', split=0.7)
 # plotBoundary(DecisionTreeClassifier(), dataset='iris', split=0.7)
+
+# testClassifier(DecisionTreeClassifier(), dataset='vowel', split=0.7)
+# plotBoundary(DecisionTreeClassifier(), dataset='vowel', split=0.7)
 
 # testClassifier(BoostClassifier(DecisionTreeClassifier(), T=10), dataset='iris',split=0.7)
 # plotBoundary(BoostClassifier(DecisionTreeClassifier(), T=10), dataset='iris',split=0.7)
